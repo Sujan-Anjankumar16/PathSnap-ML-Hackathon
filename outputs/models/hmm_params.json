@@ -1,0 +1,8 @@
+{
+  "beta": 15.0,
+  "emission_weight": 1.0,
+  "min_move_m": 15.0,
+  "gap_seconds": 60.0,
+  "cutoff_factor": 3.0,
+  "cutoff_add": 250.0
+}

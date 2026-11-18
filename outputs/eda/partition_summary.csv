@@ -1,0 +1,3 @@
+partition,trips,gps_points,median_points,median_duration_min,median_arcs,max_arcs,trips_with_gap_gt_60s,nonfinite_rows
+student_test,10,19160,1420.0,30.15833333333333,13145.0,56027,1,0
+train,80,208417,1529.0,28.500025,19526.5,307392,22,0

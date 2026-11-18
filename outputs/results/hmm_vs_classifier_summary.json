@@ -1,0 +1,10 @@
+{
+  "classifier_only_top1 (point-weighted)": 0.8859727554830905,
+  "classifier+HMM_top1 (point-weighted)": 0.9226844790406564,
+  "classifier_only_point_continuity": 0.9433452496472052,
+  "classifier+HMM_point_continuity": 0.9785455229911136,
+  "classifier+HMM_path_continuity": 0.9989080610785086,
+  "classifier_only_route_f1": 0.9372909886566905,
+  "classifier+HMM_route_f1": 0.9815352677329976,
+  "mean_time_per_trip_s": 0.5792770147323608
+}

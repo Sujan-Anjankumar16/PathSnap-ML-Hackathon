@@ -1,0 +1,26 @@
+# environments / caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+.ipynb_checkpoints/
+
+# raw data is NOT committed (it lives in ../Student folder)
+Student folder/
+*.track
+*.nodes
+*.arcs
+*.route
+
+# large intermediate files (re-create with scripts/02_build_features.py)
+outputs/features/*.pkl
+
+# large comparison models (re-create with scripts/03_train_models.py); final model IS committed
+outputs/models/rf.joblib
+outputs/models/extratrees.joblib
+outputs/models/knn.joblib
+outputs/models/svm_rbf.joblib
+outputs/api_requests.log
+*.tgz
+_to_delete/

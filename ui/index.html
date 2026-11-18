@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PathSnap – Evaluator UI</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1d2433; --muted:#6b7280; --acc:#d32f2f; --gps:#1565c0; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--ink); }
+  header { padding:14px 22px; background:#1d2433; color:#fff; display:flex; align-items:baseline; gap:14px; }
+  header h1 { margin:0; font-size:20px; } header span { color:#aab; font-size:13px; }
+  main { display:grid; grid-template-columns: 340px 1fr; gap:14px; padding:14px; height: calc(100vh - 56px); }
+  .card { background:var(--card); border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.08); padding:14px; }
+  #side { display:flex; flex-direction:column; gap:12px; overflow:auto; }
+  label { font-size:12px; color:var(--muted); display:block; margin-bottom:4px; }
+  input, select, button { width:100%; padding:8px 10px; border-radius:6px; border:1px solid #d0d5dd; font-size:14px; }
+  button { background:var(--ink); color:#fff; border:none; cursor:pointer; margin-top:8px; }
+  button:disabled { opacity:.5; cursor:wait; }
+  #trips { display:grid; grid-template-columns: 1fr 1fr; gap:6px; }
+  #trips button { margin:0; background:#eef1f5; color:var(--ink); font-family: ui-monospace, monospace; }
+  #trips button.sel { background:var(--acc); color:#fff; }
+  #map { border-radius:10px; height:100%; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  td { padding:5px 2px; border-bottom:1px solid #eee; } td:last-child { text-align:right; font-variant-numeric: tabular-nums; font-weight:600; }
+  .big { font-size:30px; font-weight:700; } .muted { color:var(--muted); font-size:12px; }
+  #status { font-size:12px; color:var(--muted); min-height:16px; }
+  .legend { font-size:12px; line-height:1.7; }
+  .dot { display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--gps); }
+  .line { display:inline-block; width:18px; height:4px; background:var(--acc); vertical-align:middle; }
+</style>
+</head>
+<body>
+<header><h1>PathSnap</h1><span>Map-matching of noisy GPS trajectories · evaluator interface</span></header>
+<main>
+  <div id="side">
+    <div class="card">
+      <label for="api">API address (Laptop 1)</label>
+      <input id="api" placeholder="http://192.168.x.x:8000">
+      <button id="connect">Connect &amp; load trips</button>
+      <div id="status"></div>
+    </div>
+    <div class="card">
+      <label>Evaluation trips</label>
+      <div id="trips"><span class="muted">Connect to the API to list trips.</span></div>
+    </div>
+    <div class="card" id="result" style="display:none">
+      <div class="muted">Point accuracy (classifier + HMM)</div>
+      <div class="big" id="acc">–</div>
+      <table id="mt"></table>
+    </div>
+    <div class="card legend">
+      <span class="dot"></span> Raw GPS observations<br>
+      <span class="line"></span> Predicted route (HMM / Viterbi)<br>
+      <span class="muted">Ground truth stays on the API server; only accuracy numbers are returned.</span>
+    </div>
+  </div>
+  <div id="map"></div>
+</main>
+<script>
+const apiInput = document.getElementById('api');
+apiInput.value = localStorage.getItem('pathsnap_api') || `http://${location.hostname || 'localhost'}:8000`;
+const map = L.map('map').setView([20, 0], 2);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  { attribution: '&copy; OpenStreetMap contributors', maxZoom: 19 }).addTo(map);
+let layers = L.layerGroup().addTo(map);
+const status = (t) => document.getElementById('status').textContent = t;
+const api = () => apiInput.value.replace(/\/$/, '');
+
+document.getElementById('connect').onclick = async () => {
+  try { localStorage.setItem('pathsnap_api', apiInput.value); } catch (e) {}
+  status('Connecting…');
+  try {
+    const h = await (await fetch(api() + '/health')).json();
+    const r = await (await fetch(api() + '/trips')).json();
+    status(`Connected · model ${h.model} · ${r.trips.length} trips (${r.partition})`);
+    const box = document.getElementById('trips'); box.innerHTML = '';
+    r.trips.forEach(id => {
+      const b = document.createElement('button'); b.textContent = id;
+      b.onclick = () => run(id, b); box.appendChild(b);
+    });
+  } catch (e) { status('Could not reach the API: ' + e); }
+};
+
+async function run(id, btn) {
+  document.querySelectorAll('#trips button').forEach(b => { b.classList.remove('sel'); b.disabled = true; });
+  btn.classList.add('sel'); status(`Trip ${id}: request sent, waiting for the API…`);
+  try {
+    const res = await fetch(api() + '/predict', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                                   body: JSON.stringify({ trip_id: id }) });
+    if (!res.ok) throw new Error(await res.text());
+    const d = await res.json();
+    draw(d); show(d); status(`Trip ${id}: done in ${d.timing_s.total}s`);
+  } catch (e) { status('Error: ' + e); }
+  document.querySelectorAll('#trips button').forEach(b => b.disabled = false);
+}
+
+function draw(d) {
+  layers.clearLayers();
+  d.gps_latlon.forEach(p => L.circleMarker(p, { radius: 2, color: '#1565c0', weight: 1, fillOpacity: .8 }).addTo(layers));
+  const route = L.polyline(d.predicted_route_latlon, { color: '#d32f2f', weight: 4, opacity: .85 }).addTo(layers);
+  L.marker(d.gps_latlon[0], { title: 'start' }).bindTooltip('Start').addTo(layers);
+  L.marker(d.gps_latlon[d.gps_latlon.length - 1], { title: 'end' }).bindTooltip('End').addTo(layers);
+  map.fitBounds(L.latLngBounds(d.gps_latlon), { padding: [30, 30] });
+}
+
+function show(d) {
+  const m = d.metrics, pct = v => (v * 100).toFixed(2) + ' %';
+  document.getElementById('result').style.display = 'block';
+  document.getElementById('acc').textContent = m.available ? pct(m.point_accuracy_hmm) : 'n/a';
+  const rows = [
+    ['Trip', d.trip_id],
+    ['GPS observations', d.n_gps_points],
+    ['Evaluated observations', m.available ? m.n_evaluated_points : 'n/a'],
+    ['Classifier-only accuracy', m.available ? pct(m.point_accuracy_classifier_only) : 'n/a'],
+    ['Route precision', m.available ? pct(m.route_precision) : 'n/a'],
+    ['Route recall', m.available ? pct(m.route_recall) : 'n/a'],
+    ['Route F1', m.available ? pct(m.route_f1) : 'n/a'],
+    ['Route continuity', pct(d.route_continuity)],
+    ['Predicted segments', d.n_route_segments],
+    ['Route length', d.route_length_km.toFixed(2) + ' km'],
+    ['HMM chain breaks', d.chain_breaks],
+    ['Time (classifier / HMM)', `${d.timing_s.classifier}s / ${d.timing_s.hmm}s`],
+  ];
+  document.getElementById('mt').innerHTML = rows.map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
+}
+</script>
+</body>
+</html>
