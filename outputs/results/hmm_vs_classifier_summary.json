@@ -6,5 +6,5 @@
   "classifier+HMM_path_continuity": 0.9989080610785086,
   "classifier_only_route_f1": 0.9372909886566905,
   "classifier+HMM_route_f1": 0.9815352677329976,
-  "mean_time_per_trip_s": 0.5792770147323608
+  "mean_time_per_trip_s": 0.5866149425506592
 }
