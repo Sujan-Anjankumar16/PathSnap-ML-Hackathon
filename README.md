@@ -15,7 +15,7 @@ raw trip files ─► cleaning + local metric projection ─► candidate road s
 | Folder | Contents |
 |---|---|
 | `src/pathsnap/` | library code: `data.py` (I/O, projection), `labels.py` (route→point labels), `candidates.py`, `features.py`, `metrics.py`, `bayesopt.py` (GP + Expected Improvement), `hmm.py` (Viterbi), `viz.py` (matplotlib + Folium) |
-| `scripts/` | the pipeline, run in order `01` → `05` |
+| `scripts/` | the pipeline, run in order `01` → `06` |
 | `api/main.py` | FastAPI backend (Laptop 1) |
 | `ui/index.html` | evaluator UI (Laptop 2), a single page using Leaflet |
 | `outputs/eda/` | dataset inventory, data-quality notes, EDA plots, candidate-radius study |
@@ -42,6 +42,7 @@ python scripts/02_build_features.py    # candidate generation + feature tables  
 python scripts/03_train_models.py      # 9 models, GroupKFold CV + student-test comparison     (~15 min)
 python scripts/04_bayes_opt.py 30      # Bayesian optimisation of the chosen model            (~10 min)
 python scripts/05_hmm_eval.py          # decoder tuning + classifier-only vs classifier+HMM   (~5 min)
+python scripts/06_extra_analysis.py    # loss curves (MLP, HGB) + failure analysis of trip 00000007
 ```
 
 Random seed: 42 (`src/pathsnap/config.py`). Every number in the report comes from the CSV/JSON files these scripts write to `outputs/`.
