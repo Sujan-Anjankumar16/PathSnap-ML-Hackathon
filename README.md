@@ -2,6 +2,15 @@
 
 UE24CS352A Machine Learning Hackathon, PES University (RR campus).
 
+## Team
+
+| Name | SRN |
+|---|---|
+| Sujan Anjankumar | PES1UG24CS632 |
+| Suhas Bajantri | PES1UG24CS631 |
+| Abhijeet C Yalgi | PES1UG24CS648 |
+| Abhishek | PES1UG24CS650 |
+
 PathSnap takes a noisy GPS trajectory and a road network and works out which road segments the vehicle actually drove on:
 
 ```
